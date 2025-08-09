@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { FieldSchema, FormSchema, FormDataState } from "@/types/schema";
 import { checkDependencies } from "@/lib/dependencies";
 import { useEffect } from "react";
-import { CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/solid";
+import {  ExclamationCircleIcon } from "@heroicons/react/24/solid";
 
 interface FormRendererProps {
   schema: FormSchema;

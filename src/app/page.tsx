@@ -22,12 +22,6 @@ export default function Page() {
     );
   }
 
-  const next = async () => {
-    if (validateCurrentStep) {
-      const isValid = await validateCurrentStep();
-      if (isValid) setStep((prev) => prev + 1);
-    }
-  };
 
   const [progressTextIndex, setProgressTextIndex] = useState(0);
 <link
