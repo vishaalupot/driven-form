@@ -10,7 +10,7 @@ interface FormRendererProps {
   schema: FormSchema;
   step: number;
   formData: FormDataState;
-  updateField: (key: string, value: any) => void;
+  updateField: (key: string, value: unknown) => void;
   onValidationChange?: (isValid: boolean, validateFn: () => Promise<boolean>) => void;
 }
 
@@ -30,7 +30,7 @@ function DynamicSelectField({
 }: {
   field: FieldSchema;
   control: any;
-  updateField: (key: string, value: any) => void;
+  updateField: (key: string, value: unknown) => void;
   formData: FormDataState;
 }) {
   const options = getDynamicOptions(field, formData);
@@ -90,7 +90,7 @@ function DynamicSelectField({
 function clearDependentFields(
   changedFieldKey: string,
   formData: FormDataState,
-  updateField: (key: string, value: any) => void
+  updateField: (key: string, value: unknown) => void
 ) {
   if (changedFieldKey === "propertyType") {
     updateField("category", "");
@@ -349,10 +349,19 @@ export default function FormRenderer({
   );
 }
 
-function getErrorMessage(error: any): string {
+function getErrorMessage(error: unknown): string {
     if (!error) return "";
     if (typeof error === "string") return error;
-    if ("message" in error && typeof error.message === "string") return error.message;
+  
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "message" in error &&
+      typeof (error as any).message === "string"
+    ) {
+      return (error as { message: string }).message;
+    }
+  
     return "This field is required";
   }
   
