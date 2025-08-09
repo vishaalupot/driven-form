@@ -29,6 +29,7 @@ export default function Page() {
   rel="stylesheet"
 />
 
+
 const texts = [
   <>25% </>,
   <>50% </>,
@@ -69,6 +70,20 @@ const nexts = async () => {
   const progress = ((step + 1) / schema.steps.length) * 100;
 
   return (
+    
+    <>
+    <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Great+Vibes&family=Pacifico&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        
+        <link
+          href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+          rel="stylesheet"
+        />
+    </head>
     <main className="relative min-h-screen overflow-hidden">
 
       <video
@@ -84,12 +99,12 @@ const nexts = async () => {
 
           <div
       className="absolute left-6 top-[37%] transform -translate-y-1/2 z-10 text-left text-white/40 select-none text-[250px]"
-      style={{ fontFamily: "'Great Vibes', cursive" }}
+      style={{ fontFamily: "'PT Serif', serif" }}
     >
       {texts[progressTextIndex]}
     </div>
     <div  className="absolute left-6 top-1/2 transform -translate-y-1/2 z-10 text-left text-white/40 select-none text-[50px]"
-      style={{ fontFamily: "'Great Vibes', cursive" }}><br /> Closer To Your Dream Home</div>
+      style={{ fontFamily: "'PT Serif', serif" }}><br /> Closer To Your Dream Home</div>
 
       <div className="relative z-20 flex justify-end items-center min-h-screen px-8">
       <div className="w-full max-w-lg bg-white shadow-xl rounded-2xl p-6 sm:p-6 border border-neutral-200 h-[700px] overflow-y-auto">
@@ -163,5 +178,7 @@ const nexts = async () => {
         </div>
       </div>
     </main>
+    </>
+    
   );
 }
