@@ -28,7 +28,7 @@ export default function Page() {
     <>25% </>,
     <>50% </>,
     <>75% </>,
-    <>99% </>,
+    <>85% </>,
   ];
 
   const nexts = async () => {
@@ -94,7 +94,7 @@ export default function Page() {
         </div>
         <div className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 text-left text-white/70 select-none text-[32px]"
           style={{ fontFamily:"'Open Sans', sans-serif" }}>
-          <br /> CLOSE TO YOUR DREAM HOME
+          <br /> CLOSE TO YOUR DREAM PROPERTY
         </div>
       </div>
 

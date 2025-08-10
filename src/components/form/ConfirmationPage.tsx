@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FormSchema, FormDataState, FieldSchema } from "@/types/schema";
 
 interface ConfirmationPageProps {
@@ -16,10 +16,17 @@ export default function ConfirmationPage({
 }: ConfirmationPageProps) {
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // useEffect(() => {
+  //   console.log("=== CONFIRMATION PAGE DATA ===");
+  //   console.log("Form Data:", formData);
+  // }, [formData, schema]);
+
   const handleSubmit = () => {
     onSubmit();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
+
+    
 
     setTimeout(() => {
         setShowSuccess(false);

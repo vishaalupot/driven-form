@@ -7,7 +7,7 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
   fields.forEach(field => {
     let zodField: z.ZodTypeAny;
 
-    console.log(field.label)
+    // console.log(field.label)
 
 
     switch (field.type) {

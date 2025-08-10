@@ -3,7 +3,7 @@
 import { Controller, useForm } from "react-hook-form";
 import { FieldSchema, FormSchema, FormDataState } from "@/types/schema";
 import { checkDependencies } from "@/lib/dependencies";
-import { useEffect, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { getZodSchemaForStep } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z, ZodError } from "zod";
+import React from "react";
 
 interface FormRendererProps {
   schema: FormSchema;
@@ -29,7 +30,67 @@ function getDynamicOptions(field: FieldSchema, formData: FormDataState): string[
   return map[sourceValue];
 }
 
-function DynamicSelectField({
+// function DynamicSelectField({
+//   field,
+//   control,
+//   updateField,
+//   formData,
+// }: {
+//   field: FieldSchema;
+//   control: any;
+//   updateField: (key: string, value: unknown) => void;
+//   formData: FormDataState;
+// }) {
+//   const options = getDynamicOptions(field, formData);
+//   const errorId = `${field.key}-error`;
+
+//   return (
+//     <Controller
+//       name={field.key}
+//       control={control}
+//       render={({ field: rhfField, fieldState }) => (
+//         <div className="space-y-2">
+//           <Select
+//             value={rhfField.value ?? ""}
+//             onValueChange={(value) => {
+//               rhfField.onChange(value);
+//               updateField(field.key, value);
+//               clearDependentFields(field.key, formData, updateField);
+//             }}
+//           >
+//             <SelectTrigger 
+//               className={`w-full ${fieldState.error ? "border-red-500" : ""}`}
+//               aria-describedby={fieldState.error ? errorId : undefined}
+//               aria-invalid={!!fieldState.error}
+//             >
+//               <SelectValue placeholder="Select..." />
+//             </SelectTrigger>
+//             <SelectContent>
+//               {options.map((opt: string) => (
+//                 <SelectItem key={opt} value={opt}>
+//                   {opt}
+//                 </SelectItem>
+//               ))}
+//             </SelectContent>
+//           </Select>
+//           {fieldState.error && (
+//             <div 
+//               id={errorId}
+//               aria-live="polite"
+//               className="mt-1 flex items-center text-sm text-red-600"
+//               role="alert"
+//             >
+//               <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
+//               {fieldState.error.message}
+//             </div>
+//           )}
+//         </div>
+//       )}
+//     />
+//   );
+// }
+
+const DynamicSelectField = React.memo(function DynamicSelectField({
   field,
   control,
   updateField,
@@ -40,7 +101,8 @@ function DynamicSelectField({
   updateField: (key: string, value: unknown) => void;
   formData: FormDataState;
 }) {
-  const options = getDynamicOptions(field, formData);
+  const options = useMemo(() => getDynamicOptions(field, formData), [field, formData]);
+  const errorId = `${field.key}-error`;
 
   return (
     <Controller
@@ -56,7 +118,11 @@ function DynamicSelectField({
               clearDependentFields(field.key, formData, updateField);
             }}
           >
-            <SelectTrigger className={fieldState.error ? "border-red-500" : ""}>
+            <SelectTrigger 
+              className={`w-full ${fieldState.error ? "border-red-500" : ""}`}
+              aria-describedby={fieldState.error ? errorId : undefined}
+              aria-invalid={!!fieldState.error}
+            >
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
@@ -68,16 +134,31 @@ function DynamicSelectField({
             </SelectContent>
           </Select>
           {fieldState.error && (
-            <p className="mt-1 flex items-center text-sm text-red-600">
-              <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+            <div 
+              id={errorId}
+              aria-live="polite"
+              className="mt-1 flex items-center text-sm text-red-600"
+              role="alert"
+            >
+              <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
               {fieldState.error.message}
-            </p>
+            </div>
           )}
         </div>
       )}
     />
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison - only rerender if relevant data changed
+  return (
+    prevProps.field === nextProps.field &&
+    prevProps.control === nextProps.control &&
+    prevProps.updateField === nextProps.updateField &&
+    // Only compare formData keys that might affect this field's options
+    JSON.stringify(getDynamicOptions(prevProps.field, prevProps.formData)) === 
+    JSON.stringify(getDynamicOptions(nextProps.field, nextProps.formData))
+  );
+});
 
 function clearDependentFields(
   changedFieldKey: string,
@@ -95,6 +176,27 @@ function clearDependentFields(
   }
 }
 
+// export default function FormRenderer({
+//   schema,
+//   step,
+//   formData,
+//   updateField,
+//   onValidationChange,
+// }: FormRendererProps) {
+//   const currentStepSchema = getZodSchemaForStep(schema.steps[step].fields);
+//   const errorSummaryRef = useRef<HTMLDivElement>(null);
+
+//   const {
+//     control,
+//     setValue,
+//     formState: { errors },
+//     trigger,
+//   } = useForm({
+//     defaultValues: formData,
+//     mode: "onChange",
+//     resolver: zodResolver(currentStepSchema),
+//   });
+
 export default function FormRenderer({
   schema,
   step,
@@ -102,8 +204,12 @@ export default function FormRenderer({
   updateField,
   onValidationChange,
 }: FormRendererProps) {
-
-  const currentStepSchema = getZodSchemaForStep(schema.steps[step].fields);
+  const currentStepSchema = useMemo(
+    () => getZodSchemaForStep(schema.steps[step].fields),
+    [schema.steps, step]
+  );
+  
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   const {
     control,
@@ -115,6 +221,33 @@ export default function FormRenderer({
     mode: "onChange",
     resolver: zodResolver(currentStepSchema),
   });
+
+  // Announce form errors to screen readers when they change
+  useEffect(() => {
+    const errorCount = Object.keys(errors).length;
+    
+    if (errorCount > 0 && errorSummaryRef.current) {
+      const errorMessages = Object.entries(errors)
+        .filter(([_, error]) => error && typeof error === 'object' && 'message' in error && error.message)
+        .map(([field, error]) => {
+          const errorObj = error as { message: string };
+          return `${field}: ${errorObj.message}`;
+        })
+        .join('. ');
+      
+      if (errorMessages) {
+        // Clear and reset to trigger aria-live announcement
+        errorSummaryRef.current.textContent = '';
+        setTimeout(() => {
+          if (errorSummaryRef.current) {
+            errorSummaryRef.current.textContent = `${errorCount} validation ${errorCount === 1 ? 'error' : 'errors'} found. ${errorMessages}`;
+          }
+        }, 100);
+      }
+    } else if (errorSummaryRef.current) {
+      errorSummaryRef.current.textContent = '';
+    }
+  }, [errors]);
 
   useEffect(() => {
     Object.entries(formData).forEach(([key, value]) => {
@@ -129,7 +262,7 @@ export default function FormRenderer({
     } catch (e) {
       if (e instanceof ZodError) {
         const fieldErrors = e.issues.map((issue) => issue.message).join(", ");
-        console.log(formData)
+        // console.log(formData)
         currentStepSchema.parse(formData)
         alert(`Validation errors: ${fieldErrors}`);
       }
@@ -144,12 +277,17 @@ export default function FormRenderer({
   }, [step, schema.steps[step], formData]);
 
   const getFieldError = (fieldKey: string) => {
-    return errors[fieldKey];
+    const error = errors[fieldKey];
+    if (error && typeof error === 'object' && 'message' in error) {
+      return error as { message: string };
+    }
+    return undefined;
   };
 
   const renderField = (field: FieldSchema , parentKey?: string) => {
-
     const fieldName = parentKey ? `${parentKey}.${field.key}` : field.key;
+    const errorId = `${fieldName}-error`;
+    
     if (!checkDependencies(field, formData)) return null;
   
     if (field.key === "subCategory" && field.optionSource) {
@@ -160,25 +298,33 @@ export default function FormRenderer({
     }
   
     if (field.type === "group" && field.fields) {
-      const groupError = errors[fieldName];
+      const groupError = getFieldError(fieldName);
+      const groupErrorId = `${fieldName}-group-error`;
     
       return (
         <fieldset
           key={fieldName}
           className="border border-gray-300 rounded-md p-5 bg-gray-50"
           aria-labelledby={`${field.key}-legend`}
+          aria-describedby={groupError ? groupErrorId : undefined}
         >
           <legend
             id={`${field.key}-legend`}
             className="text-lg font-semibold text-gray-700 mb-4"
           >
             {field.label}
+            {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
           </legend>
     
           {groupError && (
-            <p className="text-red-600 mb-2">
+            <div 
+              id={groupErrorId}
+              aria-live="polite"
+              className="text-red-600 mb-2"
+              role="alert"
+            >
               {groupError.message || `Please fill out all required fields in ${field.label}`}
-            </p>
+            </div>
           )}
     
           <div className="space-y-6">
@@ -197,8 +343,7 @@ export default function FormRenderer({
           className="text-sm font-medium text-gray-700 flex items-center"
         >
           {field.label}
-          {field.required && <span className="text-red-500 ml-1">*</span>}
-          
+          {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
         </Label>
   
         {field.type === "select" && field.optionSource ? (
@@ -222,43 +367,47 @@ export default function FormRenderer({
                   return (
                     <>
                       <Input
-                    {...rhfField}
-                    id={field.key}
-                    type={field.type}
-                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                    
-                    value={String(rhfField.value || "")}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (field.label === "Phone Number") {
-                        // Only allow digits for Phone Number
-                        if (/^\d*$/.test(val)) {
-                          rhfField.onChange(val);
-                          updateField(field.key, val);
-                        }
-                      } else {
-                        // For other fields, accept any input
-                        rhfField.onChange(val);
-                        updateField(field.key, val);
-                      }
-                    }
-                  
-                  }
-                    className={fieldState.error ? "border-red-500" : ""}
-                  />
+                        {...rhfField}
+                        id={field.key}
+                        type={field.type}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        value={String(rhfField.value || "")}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (field.label === "Phone Number") {
+                            // Only allow digits for Phone Number
+                            if (/^\d*$/.test(val)) {
+                              rhfField.onChange(val);
+                              updateField(field.key, val);
+                            }
+                          } else {
+                            // For other fields, accept any input
+                            rhfField.onChange(val);
+                            updateField(field.key, val);
+                          }
+                        }}
+                        className={fieldState.error ? "border-red-500" : ""}
+                        aria-describedby={fieldState.error ? errorId : undefined}
+                        aria-invalid={!!fieldState.error}
+                      />
 
                       {fieldState.error && (
-                        <p className="mt-1 flex items-center text-sm text-red-600">
-                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                        <div 
+                          id={errorId}
+                          aria-live="polite"
+                          className="mt-1 flex items-center text-sm text-red-600"
+                          role="alert"
+                        >
+                          <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
                           {fieldState.error.message}
-                        </p>
+                        </div>
                       )}
                     </>
                   );
   
-                  case "checkbox":
+                case "checkbox":
                     return (
-                      <div className="flex items-center space-x-2 -mt-2">
+                      <div className="flex items-start space-x-2 -mt-2">
                         <Checkbox
                           id={field.key}
                           checked={!!rhfField.value}
@@ -267,13 +416,22 @@ export default function FormRenderer({
                             updateField(field.key, checked);
                             clearDependentFields(field.key, formData, updateField); 
                           }}
+                          aria-describedby={fieldState.error ? errorId : undefined}
+                          aria-invalid={!!fieldState.error}
                         />
-                        {fieldState.error && (
-                          <p className="mt-1 flex items-center text-sm text-red-600">
-                            <ExclamationCircleIcon className="mr-1 h-4 w-4" />
-                            {fieldState.error.message}
-                          </p>
-                        )}
+                        <div className="flex-1">
+                          {fieldState.error && (
+                            <div 
+                              id={errorId}
+                              aria-live="polite"
+                              className="flex items-center text-sm text-red-600"
+                              role="alert"
+                            >
+                              <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
+                              {fieldState.error.message}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                 
@@ -288,7 +446,11 @@ export default function FormRenderer({
                           clearDependentFields(field.key, formData, updateField);
                         }}
                       >
-                        <SelectTrigger className={fieldState.error ? "border-red-500" : ""}>
+                        <SelectTrigger 
+                          className={`w-full ${fieldState.error ? "border-red-500" : ""}`}
+                          aria-describedby={fieldState.error ? errorId : undefined}
+                          aria-invalid={!!fieldState.error}
+                        >
                           <SelectValue placeholder="Select..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -300,10 +462,15 @@ export default function FormRenderer({
                         </SelectContent>
                       </Select>
                       {fieldState.error && (
-                        <p className="mt-1 flex items-center text-sm text-red-600">
-                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                        <div 
+                          id={errorId}
+                          aria-live="polite"
+                          className="mt-1 flex items-center text-sm text-red-600"
+                          role="alert"
+                        >
+                          <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
                           {fieldState.error.message}
-                        </p>
+                        </div>
                       )}
                     </>
                   );
@@ -323,8 +490,18 @@ export default function FormRenderer({
   };
   
   return (
-    <form className="space-y-8 max-w-3xl mx-auto">
-      {schema.steps[step].fields.map((field) => renderField(field))}
-    </form>
+    <div>
+      {/* Screen reader only error summary - announces when errors change */}
+      <div 
+        ref={errorSummaryRef}
+        aria-live="polite"
+        className="sr-only"
+        aria-atomic="true"
+      />
+      
+      <form className="space-y-8 max-w-3xl mx-auto">
+        {schema.steps[step].fields.map((field) => renderField(field))}
+      </form>
+    </div>
   );
 }
