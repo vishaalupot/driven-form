@@ -2,7 +2,10 @@
 
 A **schema-driven forms** project built with **Next.js**, **Tailwind CSS**, and **shadcn UI**. This project dynamically generates multi-step forms based on JSON schemas, allowing flexible, reusable, and maintainable form creation.
 
-[Watch the demo video on YouTube](https://youtu.be/jvaKhEbF8DE)
+## Demo Video
+
+[![Watch the demo video](https://img.youtube.com/vi/jvaKhEbF8DE/hqdefault.jpg)](https://youtu.be/jvaKhEbF8DE)
+
 
 
 ## Features
