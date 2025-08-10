@@ -13,8 +13,6 @@ import { getZodSchemaForStep } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z, ZodError } from "zod";
 
-
-
 interface FormRendererProps {
   schema: FormSchema;
   step: number;
@@ -48,7 +46,6 @@ function DynamicSelectField({
     <Controller
       name={field.key}
       control={control}
-      rules={{ required: field.required ? `${field.label} is required` : false }}
       render={({ field: rhfField, fieldState }) => (
         <div className="space-y-2">
           <Select
@@ -108,12 +105,12 @@ export default function FormRenderer({
   const {
     control,
     setValue,
-    watch,
     formState: { errors },
     trigger,
   } = useForm({
     defaultValues: formData,
-    mode: "onChange",resolver: zodResolver(currentStepSchema),
+    mode: "onChange",
+    resolver: zodResolver(currentStepSchema),
   });
 
   useEffect(() => {
@@ -124,8 +121,6 @@ export default function FormRenderer({
 
   const validateCurrentStep = useCallback(async (): Promise<boolean> => {
     try {
-      // currentStepSchema.parse(formData);
-      // return true;
       const valid = await trigger();
       return valid;
     } catch (e) {
@@ -138,67 +133,35 @@ export default function FormRenderer({
       return false;
     }
   }, [currentStepSchema, formData]);
-  
-
-  const getEmptyRequiredFields = useCallback((fields: FieldSchema[], formData: FormDataState): string[] => {
-    const emptyFields: string[] = [];
-
-    fields.forEach((field) => {
-      if (checkDependencies(field, formData)) {
-        if (field.type === "group" && field.fields) {
-          emptyFields.push(...getEmptyRequiredFields(field.fields, formData));
-        } else if (field.required) {
-          const value = formData[field.key];
-          if (!value || (typeof value === "string" && value.trim() === "")) {
-            emptyFields.push(field.label);
-          }
-        }
-      }
-    });
-
-    return emptyFields;
-  }, []);
-
-  const getAllFieldKeys = useCallback((fields: FieldSchema[], formData: FormDataState): string[] => {
-    const keys: string[] = [];
-
-    fields.forEach((field) => {
-      if (checkDependencies(field, formData)) {
-        if (field.type === "group" && field.fields) {
-          keys.push(...getAllFieldKeys(field.fields, formData));
-        } else {
-          keys.push(field.key);
-        }
-      }
-    });
-
-    return keys;
-  }, []);
 
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true, validateCurrentStep);
     }
-  }, [step, schema.steps[step], formData]); // Remove onValidationChange from deps to prevent infinite loop
+  }, [step, schema.steps[step], formData]);
 
   const getFieldError = (fieldKey: string) => {
     return errors[fieldKey];
   };
 
-  const renderField = (field: FieldSchema) => {
-    if (!checkDependencies(field, formData)) return null;
+  const renderField = (field: FieldSchema , parentKey?: string) => {
 
+    const fieldName = parentKey ? `${parentKey}.${field.key}` : field.key;
+    if (!checkDependencies(field, formData)) return null;
+  
     if (field.key === "subCategory" && field.optionSource) {
       const options = getDynamicOptions(field, formData);
       if (options.length === 0) {
         return null;
       }
     }
-
+  
     if (field.type === "group" && field.fields) {
+      const groupError = errors[fieldName];
+    
       return (
         <fieldset
-          key={field.key}
+          key={fieldName}
           className="border border-gray-300 rounded-md p-5 bg-gray-50"
           aria-labelledby={`${field.key}-legend`}
         >
@@ -208,13 +171,22 @@ export default function FormRenderer({
           >
             {field.label}
           </legend>
-          <div className="space-y-6">{field.fields.map((subField) => renderField(subField))}</div>
+    
+          {groupError && (
+            <p className="text-red-600 mb-2">
+              {groupError.message || `Please fill out all required fields in ${field.label}`}
+            </p>
+          )}
+    
+          <div className="space-y-6">
+            {field.fields.map((subField) => renderField(subField, fieldName))}
+          </div>
         </fieldset>
       );
     }
-
-    const error = getFieldError(field.key);
-
+    
+    const error = getFieldError(fieldName);
+  
     return (
       <div key={field.key} className="space-y-2">
         <Label
@@ -227,7 +199,7 @@ export default function FormRenderer({
             <ExclamationCircleIcon className="ml-2 h-5 w-5 text-red-500" aria-hidden="true" />
           )}
         </Label>
-
+  
         {field.type === "select" && field.optionSource ? (
           <DynamicSelectField
             field={field}
@@ -237,12 +209,11 @@ export default function FormRenderer({
           />
         ) : (
           <Controller
-            name={field.key}
+            name={fieldName}
             control={control}
-            rules={{ required: field.required }}
             render={({ field: rhfField, fieldState }) => {
               const options = field.options || [];
-
+  
               switch (field.type) {
                 case "text":
                 case "number":
@@ -264,12 +235,12 @@ export default function FormRenderer({
                       {fieldState.error && (
                         <p className="mt-1 flex items-center text-sm text-red-600">
                           <ExclamationCircleIcon className="mr-1 h-4 w-4" />
-                          {getErrorMessage(fieldState.error)}
+                          {fieldState.error.message}
                         </p>
                       )}
                     </>
                   );
-
+  
                 case "checkbox":
                   return (
                     <div className="flex items-center space-x-2">
@@ -287,9 +258,15 @@ export default function FormRenderer({
                       >
                         {field.label}
                       </Label>
+                      {fieldState.error && (
+                        <p className="mt-1 flex items-center text-sm text-red-600">
+                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                          {fieldState.error.message}
+                        </p>
+                      )}
                     </div>
                   );
-
+  
                 case "select":
                   return (
                     <>
@@ -315,12 +292,12 @@ export default function FormRenderer({
                       {fieldState.error && (
                         <p className="mt-1 flex items-center text-sm text-red-600">
                           <ExclamationCircleIcon className="mr-1 h-4 w-4" />
-                          {getErrorMessage(fieldState.error)}
+                          {fieldState.error.message}
                         </p>
                       )}
                     </>
                   );
-
+  
                 default:
                   return (
                     <div className="text-sm text-red-600">
@@ -334,26 +311,10 @@ export default function FormRenderer({
       </div>
     );
   };
-
+  
   return (
     <form className="space-y-8 max-w-3xl mx-auto p-4 sm:p-8">
       {schema.steps[step].fields.map((field) => renderField(field))}
     </form>
   );
-}
-
-function getErrorMessage(error: unknown): string {
-  if (!error) return "";
-  if (typeof error === "string") return error;
-
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof (error as any).message === "string"
-  ) {
-    return (error as { message: string }).message;
-  }
-
-  return "This field is required";
 }

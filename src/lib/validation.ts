@@ -1,86 +1,144 @@
-import { z, ZodType, ZodString, ZodBoolean, ZodObject } from "zod";
+import { z } from "zod";
 import { FieldSchema } from "@/types/schema";
 
-function getZodSchemaForField(field: FieldSchema): ZodType<any> {
-  switch (field.type) {
-    case "text": {
-      let schema: ZodString = z.string();
-      if (field.key.toLowerCase().includes("email")) {
-        schema = schema.email({ message: "Invalid email address" });
-      }
-      if (field.required) {
-        schema = schema.nonempty({ message: `${field.label} is required` });
-      }
-      return schema;
-    }
+export function getZodSchemaForStep(fields: FieldSchema[]) {
+  const schemaObj: Record<string, z.ZodTypeAny> = {};
 
-    case "number": {
-      let schema = z
-        .union([z.number(), z.string().regex(/^\d+$/, "Must be a number")])
-        .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val));
-      if (field.required) {
-        schema = schema.refine((val) => !isNaN(val), { message: `${field.label} must be a number` });
-      }
-      return schema;
-    }
+  fields.forEach(field => {
+    let zodField: z.ZodTypeAny;
 
-    case "date": {
-      let schema: ZodString = z
-        .string()
-        .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date" });
-      if (field.required) {
-        schema = schema.nonempty({ message: `${field.label} is required` });
-      }
-      return schema;
-    }
-
-    case "checkbox": {
-      let schema: ZodBoolean = z.boolean();
-      if (field.required) {
-        schema = schema.refine((val: boolean) => val === true, {
-          message: `${field.label} must be checked`,
-        });
-      }
-      return schema;
-    }
-
-    case "select": {
-      let schema: ZodString = z.string();
-      if (field.required) {
-        schema = schema.nonempty({ message: `${field.label} is required` });
-      }
-      return schema;
-    }
-
-    case "group": {
-        if (field.fields) {
-          const shape: Record<string, ZodType<any>> = {};
-          field.fields.forEach((subField) => {
-            shape[subField.key] = getZodSchemaForField(subField);
-          });
-          let schema = z.object(shape);
-          
-          if (!field.required) {
-            return schema.optional(); 
-          }
-
-          
-          
-          return schema;
+    switch (field.type) {
+      case "text":
+        // Check if this is an email field and apply appropriate validation
+        if (field.key === "email" || field.key.toLowerCase().includes("email")) {
+          zodField = z.string()
+            .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
+            .email({ message: getCustomErrorMessage(field.key, field.label, "invalid") });
         } else {
-          return z.any();
+          zodField = z.string()
+            .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
         }
-      }
+        break;
 
-    default:
-      return z.any();
-  }
+      case "number":
+        zodField = z.string()
+          .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
+          .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+            message: getCustomErrorMessage(field.key, field.label, "invalid")
+          });
+        break;
+
+      case "date":
+        zodField = z.string()
+          .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
+        break;
+
+      case "select":
+        zodField = z.string()
+          .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
+        break;
+
+      case "checkbox":
+        zodField = z.preprocess(
+          (val) => val === undefined || val === null ? false : val,
+          z.boolean()
+            .refine((val) => val === true, {
+              message: getCustomErrorMessage(field.key, field.label, "required")
+            })
+        );
+        break;
+
+      case "group":
+        if (field.fields) {
+          zodField = getZodSchemaForStep(field.fields);
+        } else {
+          zodField = z.object({});
+        }
+        break;
+
+      default:
+        zodField = z.string().optional();
+    }
+
+    // Make field optional if not required, but handle undefined/null values
+    if (!field.required) {
+      if (field.type === "checkbox") {
+        zodField = zodField.optional();
+      } else {
+        zodField = z.union([
+          zodField,
+          z.literal(""),
+          z.literal(undefined),
+          z.literal(null)
+        ]).optional();
+      }
+    } else {
+      // For required fields, transform undefined/null to empty string for validation
+      if (field.type !== "checkbox" && field.type !== "group") {
+        zodField = z.preprocess((val) => {
+          if (val === undefined || val === null) return "";
+          return val;
+        }, zodField);
+      }
+    }
+
+    schemaObj[field.key] = zodField;
+  });
+
+  return z.object(schemaObj);
 }
 
-export function getZodSchemaForStep(fields: FieldSchema[]) {
-  const shape: Record<string, ZodType<any>> = {};
-  fields.forEach((field) => {
-    shape[field.key] = getZodSchemaForField(field);
-  });
-  return z.object(shape);
+function getCustomErrorMessage(fieldKey: string, fieldLabel: string, errorType: "required" | "invalid"): string {
+  // Custom messages for specific fields
+  const customMessages: Record<string, Record<string, string>> = {
+    email: {
+      required: "Please enter your email address",
+      invalid: "Please enter a valid email address",
+    },
+    phone: {
+      required: "Phone number is required",
+      invalid: "Please enter a valid phone number",
+    },
+    password: {
+      required: "Password is required",
+      invalid: "Password must be at least 8 characters long",
+    },
+    firstName: {
+      required: "First name is required",
+      invalid: "Please enter a valid first name",
+    },
+    lastName: {
+      required: "Last name is required",
+      invalid: "Please enter a valid last name",
+    },
+    propertyType: {
+      required: "Please select a property type",
+    },
+    category: {
+      required: "Please select a category",
+    },
+    subCategory: {
+      required: "Please select a subcategory",
+    },
+    price: {
+      required: "Price is required",
+      invalid: "Please enter a valid price",
+    },
+    date: {
+      required: "Date is required",
+      invalid: "Please enter a valid date",
+    }
+  };
+
+  // Return custom message if available
+  if (customMessages[fieldKey]?.[errorType]) {
+    return customMessages[fieldKey][errorType];
+  }
+
+  // Fallback messages
+  if (errorType === "required") {
+    return `${fieldLabel} is required`;
+  } else {
+    return `Please enter a valid ${fieldLabel.toLowerCase()}`;
+  }
 }

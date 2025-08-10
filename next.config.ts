@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    domains: ["cdn.prod.website-files.com"],
+  },
 };
 
 export default nextConfig;
