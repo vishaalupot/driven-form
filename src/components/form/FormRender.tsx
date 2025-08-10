@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getZodSchemaForStep } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z, ZodError } from "zod";
+import { ZodError } from "zod";
 import React from "react";
 
 interface FormRendererProps {
@@ -23,72 +23,14 @@ interface FormRendererProps {
 }
 
 function getDynamicOptions(field: FieldSchema, formData: FormDataState): string[] {
+
   if (!field.optionSource) return field.options || [];
   const { key: sourceKey, map } = field.optionSource;
   const sourceValue = formData[sourceKey];
   if (!sourceValue || !map[sourceValue]) return [];
   return map[sourceValue];
+
 }
-
-// function DynamicSelectField({
-//   field,
-//   control,
-//   updateField,
-//   formData,
-// }: {
-//   field: FieldSchema;
-//   control: any;
-//   updateField: (key: string, value: unknown) => void;
-//   formData: FormDataState;
-// }) {
-//   const options = getDynamicOptions(field, formData);
-//   const errorId = `${field.key}-error`;
-
-//   return (
-//     <Controller
-//       name={field.key}
-//       control={control}
-//       render={({ field: rhfField, fieldState }) => (
-//         <div className="space-y-2">
-//           <Select
-//             value={rhfField.value ?? ""}
-//             onValueChange={(value) => {
-//               rhfField.onChange(value);
-//               updateField(field.key, value);
-//               clearDependentFields(field.key, formData, updateField);
-//             }}
-//           >
-//             <SelectTrigger 
-//               className={`w-full ${fieldState.error ? "border-red-500" : ""}`}
-//               aria-describedby={fieldState.error ? errorId : undefined}
-//               aria-invalid={!!fieldState.error}
-//             >
-//               <SelectValue placeholder="Select..." />
-//             </SelectTrigger>
-//             <SelectContent>
-//               {options.map((opt: string) => (
-//                 <SelectItem key={opt} value={opt}>
-//                   {opt}
-//                 </SelectItem>
-//               ))}
-//             </SelectContent>
-//           </Select>
-//           {fieldState.error && (
-//             <div 
-//               id={errorId}
-//               aria-live="polite"
-//               className="mt-1 flex items-center text-sm text-red-600"
-//               role="alert"
-//             >
-//               <ExclamationCircleIcon className="mr-1 h-4 w-4" aria-hidden="true" />
-//               {fieldState.error.message}
-//             </div>
-//           )}
-//         </div>
-//       )}
-//     />
-//   );
-// }
 
 const DynamicSelectField = React.memo(function DynamicSelectField({
   field,
@@ -176,27 +118,6 @@ function clearDependentFields(
   }
 }
 
-// export default function FormRenderer({
-//   schema,
-//   step,
-//   formData,
-//   updateField,
-//   onValidationChange,
-// }: FormRendererProps) {
-//   const currentStepSchema = getZodSchemaForStep(schema.steps[step].fields);
-//   const errorSummaryRef = useRef<HTMLDivElement>(null);
-
-//   const {
-//     control,
-//     setValue,
-//     formState: { errors },
-//     trigger,
-//   } = useForm({
-//     defaultValues: formData,
-//     mode: "onChange",
-//     resolver: zodResolver(currentStepSchema),
-//   });
-
 export default function FormRenderer({
   schema,
   step,
@@ -222,7 +143,6 @@ export default function FormRenderer({
     resolver: zodResolver(currentStepSchema),
   });
 
-  // Announce form errors to screen readers when they change
   useEffect(() => {
     const errorCount = Object.keys(errors).length;
     
@@ -378,12 +298,12 @@ export default function FormRenderer({
                             // Only allow digits for Phone Number
                             if (/^\d*$/.test(val)) {
                               rhfField.onChange(val);
-                              updateField(field.key, val);
+                              updateField(fieldName, val);
                             }
                           } else {
                             // For other fields, accept any input
                             rhfField.onChange(val);
-                            updateField(field.key, val);
+                            updateField(fieldName, val);
                           }
                         }}
                         className={fieldState.error ? "border-red-500" : ""}
@@ -413,7 +333,7 @@ export default function FormRenderer({
                           checked={!!rhfField.value}
                           onCheckedChange={(checked) => {
                             rhfField.onChange(checked);
-                            updateField(field.key, checked);
+                            updateField(fieldName, checked);
                             clearDependentFields(field.key, formData, updateField); 
                           }}
                           aria-describedby={fieldState.error ? errorId : undefined}
@@ -442,7 +362,7 @@ export default function FormRenderer({
                         value={String(rhfField.value || "")}
                         onValueChange={(value) => {
                           rhfField.onChange(value);
-                          updateField(field.key, value);
+                          updateField(fieldName, value);
                           clearDependentFields(field.key, formData, updateField);
                         }}
                       >

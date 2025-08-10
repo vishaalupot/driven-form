@@ -80,22 +80,25 @@ export default function ConfirmationPage({
 function FieldValueDisplay({
   field,
   formData,
+  parentKey = "", 
 }: {
   field: FieldSchema;
   formData: FormDataState;
+  parentKey?: string;
 }) {
   if (field.type === "group" && field.fields) {
     return (
       <div className="col-span-full pl-6 border-l-4 border-indigo-200 space-y-2">
         <div className="font-semibold text-indigo-800">{field.label}</div>
         {field.fields.map((subField) => (
-          <FieldValueDisplay key={subField.key} field={subField} formData={formData} />
+          <FieldValueDisplay key={subField.key} field={subField} formData={formData} parentKey={field.key} />
         ))}
       </div>
     );
   }
 
-  let displayValue = formData[field.key];
+  const fieldKey = parentKey ? `${parentKey}.${field.key}` : field.key;
+  let displayValue = formData[fieldKey];
 
   if (field.type === "checkbox") {
     displayValue = displayValue ? "Yes" : "No";
