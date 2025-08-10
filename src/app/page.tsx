@@ -7,6 +7,8 @@ import FormRenderer from "../components/form/FormRender";
 import ConfirmationPage from "../components/form/ConfirmationPage";
 import { useFormState } from "@/hooks/useFormState";
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 
 export default function Page() {
@@ -14,7 +16,6 @@ export default function Page() {
   const [step, setStep] = useState(0);
   const { formData, updateField } = useFormState({});
   const [validateCurrentStep, setValidateCurrentStep] = useState<(() => Promise<boolean>) | null>(null);
-  const [progressTextIndex, setProgressTextIndex] = useState(0);
 
   if (!schema?.steps?.[step]) {
     return (
@@ -28,7 +29,6 @@ export default function Page() {
     <>25% </>,
     <>50% </>,
     <>75% </>,
-    <>85% </>,
   ];
 
   const nexts = async () => {
@@ -36,7 +36,6 @@ export default function Page() {
       const isValid = await validateCurrentStep();
       if (isValid) {
         setStep((prev) => prev + 1);
-        setProgressTextIndex((prev) => (prev + 1) % texts.length);
       }
     }
   };
@@ -74,7 +73,7 @@ export default function Page() {
       />
 
       <div className="absolute inset-0 bg-black/65 bg-opacity-90 z-0" />
-      <div className={`absolute left-6 top-[37%] logo transition-opacity duration-1000 hidden md:block ${step === 0 ? 'opacity-90' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`absolute left-6 top-[37%] logo transition-opacity duration-1000 hidden md:block ${step === 0 || step === 3? 'opacity-90' : 'opacity-0 pointer-events-none'}`}>
         <Image
           src="https://cdn.prod.website-files.com/669c926e032b8db8b91cd9b5/66ada4ebaaa33b9b2da87a5a_Driven%20Forbes-06-p-500.png"
           alt="Driven Forbes logo"
@@ -83,12 +82,12 @@ export default function Page() {
         />
       </div>
 
-      <div className={`progress transition-opacity duration-1000 hidden md:block ${step > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`progress transition-opacity duration-1000 hidden md:block ${step > 0 && step !== 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div
-          className="absolute left-6 top-[37%] transform -translate-y-1/2 z-10 text-left text-white/70 select-none text-[250px] font-semibold"
+          className="absolute left-6 top-[37%] transform -translate-y-1/2 z-10 text-left text-white/70 select-none text-[250px] font-semibold duration-1000"
           style={{ fontFamily:"'Open Sans', sans-serif" }}
         >
-          {texts[progressTextIndex]}
+          {texts[(step+1) - 1]}
         </div>
         <div className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10 text-left text-white/70 select-none text-[32px]"
           style={{ fontFamily:"'Open Sans', sans-serif" }}>
@@ -133,33 +132,32 @@ export default function Page() {
               )}
             </section>
 
-            <nav className=" flex justify-between items-center mt-4">
-              {step > 0 ? (
-                <button
-                  onClick={back}
-                  type="button"
-                  className="inline-flex items-center px-5 py-3 rounded-full border border-neutral-400 bg-white text-neutral-700 font-medium
-                    shadow-sm hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition"
-                >
-                  ← Back
-                </button>
-              ) : (
-                <div />
-              )}
+            <nav className="flex justify-between items-center mt-4">
+  {step > 0 ? (
+    <Button 
+      onClick={back}
+      variant="outline"
+      className="inline-flex items-center gap-2"
+    >
+      <ChevronLeft className="h-4 w-4" />
+      Back
+    </Button>
+  ) : (
+    <div />
+  )}
 
-              {step < lastStepIndex ? (
-                <button
-                  onClick={nexts}
-                  type="button"
-                  className="inline-flex items-center px-6 py-3 rounded-full bg-black text-white font-semibold shadow-md
-                    hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-transform transform hover:scale-105"
-                >
-                  Next →
-                </button>
-              ) : (
-                <div />
-              )}
-            </nav>
+  {step < lastStepIndex ? (
+    <Button 
+      onClick={nexts}
+      className="inline-flex items-center gap-2"
+    >
+      Next
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  ) : (
+    <div />
+  )}
+</nav>
           </div>
         </div>
       </div>
