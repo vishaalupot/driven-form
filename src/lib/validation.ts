@@ -19,8 +19,8 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
             } else if (field.label === "Phone Number" || field.key.toLowerCase().includes("phone")) {
               zodField = z.string()
                 .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
-                .regex(/^\d+$/, { message: "Phone number must contain only digits" })  // digits only
-                .length(10, { message: "Phone number must be exactly 10 digits" });      // exact length
+                .regex(/^\d+$/, { message: "Phone number must contain only digits" }) 
+                .length(10, { message: "Phone number must be exactly 10 digits" });     
             } else {
               zodField = z.string()
                 .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
@@ -55,7 +55,7 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
                 ? z.boolean().refine((val) => val === true, {
                     message: getCustomErrorMessage(field.key, field.label, "required")
                   })
-                : z.boolean() // For optional checkboxes, just validate as boolean without requiring true
+                : z.boolean()
             );
             break;
 
@@ -71,7 +71,6 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
         zodField = z.string().optional();
     }
 
-    // Make field optional if not required, but handle undefined/null values
     if (!field.required) {
       if (field.type === "checkbox") {
         zodField = zodField.optional();
@@ -84,7 +83,6 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
         ]).optional();
       }
     } else {
-      // For required fields, transform undefined/null to empty string for validation
       if (field.type !== "checkbox" && field.type !== "group") {
         zodField = z.preprocess((val) => {
           if (val === undefined || val === null) return "";
@@ -148,7 +146,6 @@ function getCustomErrorMessage(
       return customMessages[fieldKey][errorType];
     }
   
-    // Fallbacks
     switch (errorType) {
       case "required":
         return `${fieldLabel} is required`;

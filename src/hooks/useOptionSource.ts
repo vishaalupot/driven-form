@@ -1,4 +1,6 @@
-import { OptionSource, FormDataState } from "@/types/schema";
+"use client";
+
+import { OptionSource } from "@/types/schema";
 import { useEffect, useState } from "react";
 
 interface Option {
@@ -6,7 +8,7 @@ interface Option {
   value: string | number;
 }
 
-export function useOptionSource(optionSource: OptionSource | undefined, formData: FormDataState, apiUrl?: string) {
+export function useOptionSource(optionSource: OptionSource) {
   const [options, setOptions] = useState<Option[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +25,15 @@ export function useOptionSource(optionSource: OptionSource | undefined, formData
 
         const data: Option[] = await res.json();
         setOptions(data);
-      } catch (err: any) {
-        setError(err.message || "Error fetching options");
+      } catch (err: unknown) {
+        // Proper error handling without 'any'
+        if (err instanceof Error) {
+          setError(err.message);
+        } else if (typeof err === 'string') {
+          setError(err);
+        } else {
+          setError("Error fetching options");
+        }
       } finally {
         setLoading(false);
       }

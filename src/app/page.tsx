@@ -6,8 +6,8 @@ import rawSchema from "../data/schema.json";
 import FormRenderer from "../components/form/FormRender";
 import ConfirmationPage from "../components/form/ConfirmationPage";
 import { useFormState } from "@/hooks/useFormState";
-import Driven from "../../public/driven.png"
 import Image from 'next/image';
+
 
 export default function Page() {
   const schema = rawSchema as FormSchema;
@@ -74,17 +74,15 @@ export default function Page() {
       />
 
       <div className="absolute inset-0 bg-black/65 bg-opacity-90 z-0" />
-
-      {/* Logo - only show on step 0 and hide on mobile */}
       <div className={`absolute left-6 top-[37%] logo transition-opacity duration-1000 hidden md:block ${step === 0 ? 'opacity-90' : 'opacity-0 pointer-events-none'}`}>
-        <img
+        <Image
           src="https://cdn.prod.website-files.com/669c926e032b8db8b91cd9b5/66ada4ebaaa33b9b2da87a5a_Driven%20Forbes-06-p-500.png"
           alt="Driven Forbes logo"
-          className="w-150 h-auto"
+          width={550}
+          height={150}
         />
       </div>
 
-      {/* Progress - only show after step 0 and hide on mobile */}
       <div className={`progress transition-opacity duration-1000 hidden md:block ${step > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div
           className="absolute left-6 top-[37%] transform -translate-y-1/2 z-10 text-left text-white/70 select-none text-[250px] font-semibold"

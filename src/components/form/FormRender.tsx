@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ZodError } from "zod";
 import React from "react";
 
+
 interface FormRendererProps {
   schema: FormSchema;
   step: number;
@@ -31,6 +32,23 @@ function getDynamicOptions(field: FieldSchema, formData: FormDataState): string[
   return map[sourceValue];
 
 }
+
+const clearDependentFields = (
+  changedFieldKey: string,
+  formData: FormDataState,
+  updateField: (key: string, value: unknown) => void
+) => {
+  const dependencyMap: Record<string, string[]> = {
+    propertyType: ["category", "subCategory"],
+    category: ["subCategory"],
+    hasParking: ["parkingSpots"]
+  };
+  
+  const fieldsToReset = dependencyMap[changedFieldKey];
+  if (fieldsToReset) {
+    fieldsToReset.forEach(field => updateField(field, ""));
+  }
+};
 
 const DynamicSelectField = React.memo(function DynamicSelectField({
   field,
@@ -91,32 +109,15 @@ const DynamicSelectField = React.memo(function DynamicSelectField({
     />
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison - only rerender if relevant data changed
   return (
     prevProps.field === nextProps.field &&
     prevProps.control === nextProps.control &&
     prevProps.updateField === nextProps.updateField &&
-    // Only compare formData keys that might affect this field's options
     JSON.stringify(getDynamicOptions(prevProps.field, prevProps.formData)) === 
     JSON.stringify(getDynamicOptions(nextProps.field, nextProps.formData))
   );
 });
 
-function clearDependentFields(
-  changedFieldKey: string,
-  formData: FormDataState,
-  updateField: (key: string, value: unknown) => void
-) {
-  if (changedFieldKey === "propertyType") {
-    updateField("category", "");
-    updateField("subCategory", "");
-  } else if (changedFieldKey === "category") {
-    updateField("subCategory", "");
-  }
-  else if (changedFieldKey === "hasParking") {  
-    updateField("parkingSpots", "");             
-  }
-}
 
 export default function FormRenderer({
   schema,
@@ -148,15 +149,14 @@ export default function FormRenderer({
     
     if (errorCount > 0 && errorSummaryRef.current) {
       const errorMessages = Object.entries(errors)
-        .filter(([_, error]) => error && typeof error === 'object' && 'message' in error && error.message)
-        .map(([field, error]) => {
+      .filter(([, error]) => error && typeof error === 'object' && 'message' in error && error.message)
+      .map(([field, error]) => {
           const errorObj = error as { message: string };
           return `${field}: ${errorObj.message}`;
         })
         .join('. ');
       
       if (errorMessages) {
-        // Clear and reset to trigger aria-live announcement
         errorSummaryRef.current.textContent = '';
         setTimeout(() => {
           if (errorSummaryRef.current) {
@@ -188,13 +188,13 @@ export default function FormRenderer({
       }
       return false;
     }
-  }, [currentStepSchema, formData]);
+  }, [currentStepSchema, formData, trigger]);
 
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(true, validateCurrentStep);
     }
-  }, [step, schema.steps[step], formData]);
+  }, [step, schema.steps[step], formData, onValidationChange, validateCurrentStep]);
 
   const getFieldError = (fieldKey: string) => {
     const error = errors[fieldKey];
@@ -254,7 +254,6 @@ export default function FormRenderer({
       );
     }
     
-    const error = getFieldError(fieldName);
   
     return (
       <div key={field.key} className="space-y-2">
@@ -295,13 +294,11 @@ export default function FormRenderer({
                         onChange={(e) => {
                           const val = e.target.value;
                           if (field.label === "Phone Number") {
-                            // Only allow digits for Phone Number
                             if (/^\d*$/.test(val)) {
                               rhfField.onChange(val);
                               updateField(fieldName, val);
                             }
                           } else {
-                            // For other fields, accept any input
                             rhfField.onChange(val);
                             updateField(fieldName, val);
                           }
@@ -411,7 +408,6 @@ export default function FormRenderer({
   
   return (
     <div>
-      {/* Screen reader only error summary - announces when errors change */}
       <div 
         ref={errorSummaryRef}
         aria-live="polite"

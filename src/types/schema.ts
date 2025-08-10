@@ -9,13 +9,13 @@ export type FieldType =
 
 export interface FieldDependency {
   key: string;
-  equals?: any;       // e.g., equals: true
-  notEmpty?: boolean; // e.g., notEmpty: true
+  equals?: string | number | boolean | null;
+  notEmpty?: boolean; 
 }
 
 export interface OptionSource {
   key: string;
-  map: Record<string, string[]>; // e.g., propertyType -> [Apartment, Villa]
+  map: Record<string, string[]>; 
 }
 
 export interface FieldSchema {
@@ -23,10 +23,10 @@ export interface FieldSchema {
   label: string;
   type: FieldType;
   required?: boolean;
-  options?: string[];           // Static select options
-  optionSource?: OptionSource;  // Dynamic options
+  options?: string[];          
+  optionSource?: OptionSource;  
   dependencies?: FieldDependency[];
-  fields?: FieldSchema[];       // For "group"
+  fields?: FieldSchema[];      
 }
 
 export interface StepSchema {
@@ -37,5 +37,6 @@ export interface StepSchema {
 export interface FormSchema {
   steps: StepSchema[];
 }
+
 
 export type FormDataState = Record<string, any>;

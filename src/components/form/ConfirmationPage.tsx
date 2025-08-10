@@ -62,7 +62,6 @@ export default function ConfirmationPage({
         </>
       ) : (
         <>
-          {/* Success */}
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-6 flex items-center justify-center">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,8 +76,6 @@ export default function ConfirmationPage({
               Start Over
             </button>
           </div>
-
-          {/* EMI Calculator */}
           <div className="border-t pt-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
               Care to calculate the cost?
@@ -132,8 +129,8 @@ function FieldValueDisplay({
 
 function EMICalculator() {
   const [loanAmount, setLoanAmount] = useState('');
-  const [interestRate, setInterestRate] = useState('8.5');
-  const [loanTenure, setLoanTenure] = useState('20');
+  const [interestRate, setInterestRate] = useState('4.5');
+  const [loanTenure, setLoanTenure] = useState('25');
   const [emi, setEmi] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -160,7 +157,6 @@ function EMICalculator() {
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
-      {/* Inputs */}
       <div className="space-y-4">
         <div>
           <label className="block text-sm text-gray-600 mb-2">Loan Amount</label>
@@ -168,7 +164,7 @@ function EMICalculator() {
             type="number"
             value={loanAmount}
             onChange={(e) => setLoanAmount(e.target.value)}
-            placeholder="₹ 50,00,000"
+            placeholder="AED 1,500,000"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-black outline-none"
           />
         </div>
@@ -195,7 +191,6 @@ function EMICalculator() {
         </div>
       </div>
 
-      {/* Results */}
       <div className="bg-gray-50 rounded-lg p-6">
         {loanAmount ? (
           <div className="space-y-4">
@@ -204,17 +199,17 @@ function EMICalculator() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Monthly EMI</span>
-                <span className="font-bold text-xl">₹{emi.toLocaleString('en-IN')}</span>
+                <span className="font-bold text-xl">AED {emi.toLocaleString('en-AE')}</span>
               </div>
               
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Total Interest</span>
-                <span className="font-medium">₹{totalInterest.toLocaleString('en-IN')}</span>
+                <span className="font-medium">AED {totalInterest.toLocaleString('en-AE')}</span>
               </div>
               
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Total Amount</span>
-                <span className="font-medium">₹{totalAmount.toLocaleString('en-IN')}</span>
+                <span className="font-medium">AED {totalAmount.toLocaleString('en-AE')}</span>
               </div>
             </div>
           </div>
