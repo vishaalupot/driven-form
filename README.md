@@ -1,31 +1,14 @@
 # Schema-Driven Forms
 
-A **schema-driven forms** project built with **Next.js**, **Tailwind CSS**, and **shadcn UI**. This project dynamically generates multi-step forms based on JSON schemas, allowing flexible, reusable, and maintainable form creation.
+A **schema-driven forms** project built with **Next.js**, **Tailwind CSS**, and **shadcn UI** that dynamically generates multi-step forms based on JSON schemas. The app includes an integrated **EMI calculator** to help users quickly estimate their monthly loan installments based on input values like loan amount, interest rate, and tenure.
 
 ## Demo Video
 
 [![Watch the demo video](https://img.youtube.com/vi/jvaKhEbF8DE/hqdefault.jpg)](https://youtu.be/jvaKhEbF8DE)
 
-
-
-
-## Features
-
-- Multi-step form rendering based on JSON schema  
-- Supports various input types (text, select, checkbox, etc.)  
-- Conditional field rendering based on dependencies  
-- Dynamic option loading for select fields  
-- Integration with React Hook Form and Zod for validation  
-- Responsive design with Tailwind CSS  
-- UI components styled with shadcn UI  
-
 ## Tech Stack
 
-- **Next.js** — React framework for SSR and routing  
-- **Tailwind CSS** — Utility-first CSS framework  
-- **shadcn UI** — Accessible UI components built on Radix UI  
-- **React Hook Form** — Form state management  
-- **Zod** — Schema validation  
+Built using modern technologies such as Next.js for server-side rendering, Tailwind CSS for styling, shadcn UI components for accessibility, React Hook Form for form state management, and Zod for validation.
 
 ## Getting Started
 
