@@ -4,7 +4,8 @@ A **schema-driven forms** project built with **Next.js**, **Tailwind CSS**, and 
 
 ## Demo Video
 
-[![Watch the demo video](https://img.youtube.com/vi/jvaKhEbF8DE/hqdefault.jpg)](https://youtu.be/jvaKhEbF8DE)
+[![Watch the demo video](https://img.youtube.com/vi/jvaKhEbF8DE/maxresdefault.jpg)](https://youtu.be/jvaKhEbF8DE)
+
 
 ## Special Features
 
