@@ -13,7 +13,8 @@ export default function Page() {
   const [step, setStep] = useState(0);
   const { formData, updateField } = useFormState({});
   const [validateCurrentStep, setValidateCurrentStep] = useState<(() => Promise<boolean>) | null>(null);
-
+  const [progressTextIndex, setProgressTextIndex] = useState(0);
+  
   if (!schema?.steps?.[step]) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neutral-100">
@@ -23,7 +24,7 @@ export default function Page() {
   }
 
 
-  const [progressTextIndex, setProgressTextIndex] = useState(0);
+
 <link
   href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Great+Vibes&family=Pacifico&display=swap"
   rel="stylesheet"

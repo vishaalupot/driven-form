@@ -3,8 +3,17 @@
 import { Controller, useForm } from "react-hook-form";
 import { FieldSchema, FormSchema, FormDataState } from "@/types/schema";
 import { checkDependencies } from "@/lib/dependencies";
-import { useEffect } from "react";
-import {  ExclamationCircleIcon } from "@heroicons/react/24/solid";
+import { useEffect, useCallback } from "react";
+import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { getZodSchemaForStep } from "@/lib/validation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z, ZodError } from "zod";
+
+
 
 interface FormRendererProps {
   schema: FormSchema;
@@ -41,40 +50,26 @@ function DynamicSelectField({
       control={control}
       rules={{ required: field.required ? `${field.label} is required` : false }}
       render={({ field: rhfField, fieldState }) => (
-        <div className="relative">
-          <select
-            {...rhfField}
-            className={`peer block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400
-              focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-              ${fieldState.error ? "border-red-500 text-red-700" : ""}
-              appearance-none`}
+        <div className="space-y-2">
+          <Select
             value={rhfField.value ?? ""}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              rhfField.onChange(e);
-              updateField(field.key, newValue);
+            onValueChange={(value) => {
+              rhfField.onChange(value);
+              updateField(field.key, value);
               clearDependentFields(field.key, formData, updateField);
             }}
           >
-            <option value="">Select...</option>
-            {options.map((opt: string) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-            <svg
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
+            <SelectTrigger className={fieldState.error ? "border-red-500" : ""}>
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((opt: string) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {fieldState.error && (
             <p className="mt-1 flex items-center text-sm text-red-600">
               <ExclamationCircleIcon className="mr-1 h-4 w-4" />
@@ -107,6 +102,9 @@ export default function FormRenderer({
   updateField,
   onValidationChange,
 }: FormRendererProps) {
+
+  const currentStepSchema = getZodSchemaForStep(schema.steps[step].fields);
+
   const {
     control,
     setValue,
@@ -115,10 +113,8 @@ export default function FormRenderer({
     trigger,
   } = useForm({
     defaultValues: formData,
-    mode: "onChange",
+    mode: "onChange",resolver: zodResolver(currentStepSchema),
   });
-
-  const watchedValues = watch();
 
   useEffect(() => {
     Object.entries(formData).forEach(([key, value]) => {
@@ -126,24 +122,25 @@ export default function FormRenderer({
     });
   }, [formData, setValue]);
 
-  const validateCurrentStep = async (): Promise<boolean> => {
-    const currentStepFields = schema.steps[step].fields;
-    const fieldsToValidate = getAllFieldKeys(currentStepFields, formData);
-
-    const isValid = await trigger(fieldsToValidate);
-
-    if (!isValid) {
-      const emptyRequiredFields = getEmptyRequiredFields(currentStepFields, formData);
-      if (emptyRequiredFields.length > 0) {
-        const fieldNames = emptyRequiredFields.join(", ");
-        alert(`Please fill in the following required fields: ${fieldNames}`);
+  const validateCurrentStep = useCallback(async (): Promise<boolean> => {
+    try {
+      // currentStepSchema.parse(formData);
+      // return true;
+      const valid = await trigger();
+      return valid;
+    } catch (e) {
+      if (e instanceof ZodError) {
+        const fieldErrors = e.issues.map((issue) => issue.message).join(", ");
+        console.log(formData)
+        currentStepSchema.parse(formData)
+        alert(`Validation errors: ${fieldErrors}`);
       }
+      return false;
     }
+  }, [currentStepSchema, formData]);
+  
 
-    return isValid;
-  };
-
-  const getEmptyRequiredFields = (fields: FieldSchema[], formData: FormDataState): string[] => {
+  const getEmptyRequiredFields = useCallback((fields: FieldSchema[], formData: FormDataState): string[] => {
     const emptyFields: string[] = [];
 
     fields.forEach((field) => {
@@ -160,9 +157,9 @@ export default function FormRenderer({
     });
 
     return emptyFields;
-  };
+  }, []);
 
-  const getAllFieldKeys = (fields: FieldSchema[], formData: FormDataState): string[] => {
+  const getAllFieldKeys = useCallback((fields: FieldSchema[], formData: FormDataState): string[] => {
     const keys: string[] = [];
 
     fields.forEach((field) => {
@@ -176,11 +173,13 @@ export default function FormRenderer({
     });
 
     return keys;
-  };
+  }, []);
 
   useEffect(() => {
-    onValidationChange?.(true, validateCurrentStep);
-  }, [step, schema, onValidationChange]);
+    if (onValidationChange) {
+      onValidationChange(true, validateCurrentStep);
+    }
+  }, [step, schema.steps[step], formData]); // Remove onValidationChange from deps to prevent infinite loop
 
   const getFieldError = (fieldKey: string) => {
     return errors[fieldKey];
@@ -217,17 +216,17 @@ export default function FormRenderer({
     const error = getFieldError(field.key);
 
     return (
-      <div key={field.key} className="space-y-1">
-        <label
+      <div key={field.key} className="space-y-2">
+        <Label
           htmlFor={field.key}
-          className="block text-sm font-medium text-gray-700 flex items-center"
+          className="text-sm font-medium text-gray-700 flex items-center"
         >
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
           {error && (
             <ExclamationCircleIcon className="ml-2 h-5 w-5 text-red-500" aria-hidden="true" />
           )}
-        </label>
+        </Label>
 
         {field.type === "select" && field.optionSource ? (
           <DynamicSelectField
@@ -249,75 +248,77 @@ export default function FormRenderer({
                 case "number":
                 case "date":
                   return (
-                    <input
-                      {...rhfField}
-                      id={field.key}
-                      type={field.type}
-                      className={`block w-full rounded-md border px-3 py-2 text-sm
-                      shadow-sm placeholder-gray-400
-                      focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-                      ${
-                        fieldState.error
-                          ? "border-red-500 text-red-700 focus:ring-red-500"
-                          : "border-gray-300"
-                      }`}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                      value={rhfField.value ?? ""}
-                      onChange={(e) => {
-                        rhfField.onChange(e);
-                        updateField(field.key, e.target.value);
-                      }}
-                    />
+                    <>
+                      <Input
+                        {...rhfField}
+                        id={field.key}
+                        type={field.type}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        value={String(rhfField.value || "")}
+                        onChange={(e) => {
+                          rhfField.onChange(e);
+                          updateField(field.key, e.target.value);
+                        }}
+                        className={fieldState.error ? "border-red-500" : ""}
+                      />
+                      {fieldState.error && (
+                        <p className="mt-1 flex items-center text-sm text-red-600">
+                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                          {getErrorMessage(fieldState.error)}
+                        </p>
+                      )}
+                    </>
                   );
 
                 case "checkbox":
                   return (
-                    <div className="flex items-center">
-                      <input
-                        {...rhfField}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
                         id={field.key}
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         checked={!!rhfField.value}
-                        onChange={(e) => {
-                          rhfField.onChange(e.target.checked);
-                          updateField(field.key, e.target.checked);
+                        onCheckedChange={(checked) => {
+                          rhfField.onChange(checked);
+                          updateField(field.key, checked);
                         }}
                       />
-                      <label htmlFor={field.key} className="ml-2 block text-sm text-gray-700">
+                      <Label 
+                        htmlFor={field.key} 
+                        className="text-sm font-normal cursor-pointer"
+                      >
                         {field.label}
-                      </label>
+                      </Label>
                     </div>
                   );
 
                 case "select":
                   return (
-                    <select
-                      {...rhfField}
-                      id={field.key}
-                      className={`block w-full rounded-md border px-3 py-2 text-sm
-                      shadow-sm
-                      focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-                      ${
-                        fieldState.error
-                          ? "border-red-500 text-red-700 focus:ring-red-500"
-                          : "border-gray-300"
-                      }`}
-                      value={rhfField.value ?? ""}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        rhfField.onChange(e);
-                        updateField(field.key, newValue);
-                        clearDependentFields(field.key, formData, updateField);
-                      }}
-                    >
-                      <option value="">Select...</option>
-                      {options.map((opt: string) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <Select
+                        value={String(rhfField.value || "")}
+                        onValueChange={(value) => {
+                          rhfField.onChange(value);
+                          updateField(field.key, value);
+                          clearDependentFields(field.key, formData, updateField);
+                        }}
+                      >
+                        <SelectTrigger className={fieldState.error ? "border-red-500" : ""}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((opt: string) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldState.error && (
+                        <p className="mt-1 flex items-center text-sm text-red-600">
+                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                          {getErrorMessage(fieldState.error)}
+                        </p>
+                      )}
+                    </>
                   );
 
                 default:
@@ -330,14 +331,6 @@ export default function FormRenderer({
             }}
           />
         )}
-
-        {error && (
-            <p className="mt-1 flex items-center text-sm text-red-600">
-                <ExclamationCircleIcon className="mr-1 h-4 w-4" />
-                {getErrorMessage(error)}
-            </p>
-            )}
-
       </div>
     );
   };
@@ -350,18 +343,17 @@ export default function FormRenderer({
 }
 
 function getErrorMessage(error: unknown): string {
-    if (!error) return "";
-    if (typeof error === "string") return error;
-  
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "message" in error &&
-      typeof (error as any).message === "string"
-    ) {
-      return (error as { message: string }).message;
-    }
-  
-    return "This field is required";
+  if (!error) return "";
+  if (typeof error === "string") return error;
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as any).message === "string"
+  ) {
+    return (error as { message: string }).message;
   }
-  
+
+  return "This field is required";
+}
