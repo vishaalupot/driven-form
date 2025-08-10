@@ -7,24 +7,34 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
   fields.forEach(field => {
     let zodField: z.ZodTypeAny;
 
-    switch (field.type) {
-      case "text":
-        // Check if this is an email field and apply appropriate validation
-        if (field.key === "email" || field.key.toLowerCase().includes("email")) {
-          zodField = z.string()
-            .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
-            .email({ message: getCustomErrorMessage(field.key, field.label, "invalid") });
-        } else {
-          zodField = z.string()
-            .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
-        }
-        break;
+    console.log(field.label)
 
+
+    switch (field.type) {
+        case "text":
+            if (field.key === "email" || field.key.toLowerCase().includes("email")) {
+              zodField = z.string()
+                .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
+                .email({ message: getCustomErrorMessage(field.key, field.label, "invalid") });
+            } else if (field.label === "Phone Number" || field.key.toLowerCase().includes("phone")) {
+              zodField = z.string()
+                .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
+                .regex(/^\d+$/, { message: "Phone number must contain only digits" })  // digits only
+                .length(10, { message: "Phone number must be exactly 10 digits" });      // exact length
+            } else {
+              zodField = z.string()
+                .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
+            }
+            break;
+          
       case "number":
         zodField = z.string()
-          .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") })
+          .min(1, {
+             message: getCustomErrorMessage(field.key, field.label, "required") 
+            })
           .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
             message: getCustomErrorMessage(field.key, field.label, "invalid")
+           
           });
         break;
 
@@ -38,15 +48,16 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
           .min(1, { message: getCustomErrorMessage(field.key, field.label, "required") });
         break;
 
-      case "checkbox":
-        zodField = z.preprocess(
-          (val) => val === undefined || val === null ? false : val,
-          z.boolean()
-            .refine((val) => val === true, {
-              message: getCustomErrorMessage(field.key, field.label, "required")
-            })
-        );
-        break;
+        case "checkbox":
+            zodField = z.preprocess(
+              (val) => val === undefined || val === null ? false : val,
+              field.required 
+                ? z.boolean().refine((val) => val === true, {
+                    message: getCustomErrorMessage(field.key, field.label, "required")
+                  })
+                : z.boolean() // For optional checkboxes, just validate as boolean without requiring true
+            );
+            break;
 
       case "group":
         if (field.fields) {
@@ -87,58 +98,66 @@ export function getZodSchemaForStep(fields: FieldSchema[]) {
 
   return z.object(schemaObj);
 }
-
-function getCustomErrorMessage(fieldKey: string, fieldLabel: string, errorType: "required" | "invalid"): string {
-  // Custom messages for specific fields
-  const customMessages: Record<string, Record<string, string>> = {
-    email: {
-      required: "Please enter your email address",
-      invalid: "Please enter a valid email address",
-    },
-    phone: {
-      required: "Phone number is required",
-      invalid: "Please enter a valid phone number",
-    },
-    password: {
-      required: "Password is required",
-      invalid: "Password must be at least 8 characters long",
-    },
-    firstName: {
-      required: "First name is required",
-      invalid: "Please enter a valid first name",
-    },
-    lastName: {
-      required: "Last name is required",
-      invalid: "Please enter a valid last name",
-    },
-    propertyType: {
-      required: "Please select a property type",
-    },
-    category: {
-      required: "Please select a category",
-    },
-    subCategory: {
-      required: "Please select a subcategory",
-    },
-    price: {
-      required: "Price is required",
-      invalid: "Please enter a valid price",
-    },
-    date: {
-      required: "Date is required",
-      invalid: "Please enter a valid date",
+function getCustomErrorMessage(
+    fieldKey: string,
+    fieldLabel: string,
+    errorType: "required" | "invalid" | "onlyNumbers" | "length10"
+  ): string {
+    const customMessages: Record<string, Record<string, string>> = {
+      email: {
+        required: "Please enter your email address",
+        invalid: "Please enter a valid email address",
+      },
+      password: {
+        required: "Password is required",
+        invalid: "Password must be at least 8 characters long",
+      },
+      firstName: {
+        required: "First name is required",
+        invalid: "Please enter a valid first name",
+      },
+      lastName: {
+        required: "Last name is required",
+        invalid: "Please enter a valid last name",
+      },
+      propertyType: {
+        required: "Please select a property type",
+      },
+      category: {
+        required: "Please select a category",
+      },
+      subCategory: {
+        required: "Please select a subcategory",
+      },
+      price: {
+        required: "Price is required",
+        invalid: "Please enter a valid price",
+      },
+      date: {
+        required: "Date is required",
+        invalid: "Please enter a valid date",
+      },
+      phone: {
+        required: "Phone number is required",
+        onlyNumbers: "Phone number must contain only numbers",
+        length10: "Phone number must be exactly 10 digits",
+      },
+    };
+  
+    if (customMessages[fieldKey]?.[errorType]) {
+      return customMessages[fieldKey][errorType];
     }
-  };
-
-  // Return custom message if available
-  if (customMessages[fieldKey]?.[errorType]) {
-    return customMessages[fieldKey][errorType];
+  
+    // Fallbacks
+    switch (errorType) {
+      case "required":
+        return `${fieldLabel} is required`;
+      case "onlyNumbers":
+        return `${fieldLabel} must contain only numbers`;
+      case "length10":
+        return `${fieldLabel} must be exactly 10 digits`;
+      default:
+        return `Please enter a valid ${fieldLabel.toLowerCase()}`;
+    }
   }
-
-  // Fallback messages
-  if (errorType === "required") {
-    return `${fieldLabel} is required`;
-  } else {
-    return `Please enter a valid ${fieldLabel.toLowerCase()}`;
-  }
-}
+  

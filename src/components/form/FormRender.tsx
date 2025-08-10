@@ -90,6 +90,9 @@ function clearDependentFields(
   } else if (changedFieldKey === "category") {
     updateField("subCategory", "");
   }
+  else if (changedFieldKey === "hasParking") {  
+    updateField("parkingSpots", "");             
+  }
 }
 
 export default function FormRenderer({
@@ -195,9 +198,7 @@ export default function FormRenderer({
         >
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
-          {error && (
-            <ExclamationCircleIcon className="ml-2 h-5 w-5 text-red-500" aria-hidden="true" />
-          )}
+          
         </Label>
   
         {field.type === "select" && field.optionSource ? (
@@ -221,17 +222,31 @@ export default function FormRenderer({
                   return (
                     <>
                       <Input
-                        {...rhfField}
-                        id={field.key}
-                        type={field.type}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                        value={String(rhfField.value || "")}
-                        onChange={(e) => {
-                          rhfField.onChange(e);
-                          updateField(field.key, e.target.value);
-                        }}
-                        className={fieldState.error ? "border-red-500" : ""}
-                      />
+                    {...rhfField}
+                    id={field.key}
+                    type={field.type}
+                    placeholder={`Enter ${field.label.toLowerCase()}`}
+                    
+                    value={String(rhfField.value || "")}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (field.label === "Phone Number") {
+                        // Only allow digits for Phone Number
+                        if (/^\d*$/.test(val)) {
+                          rhfField.onChange(val);
+                          updateField(field.key, val);
+                        }
+                      } else {
+                        // For other fields, accept any input
+                        rhfField.onChange(val);
+                        updateField(field.key, val);
+                      }
+                    }
+                  
+                  }
+                    className={fieldState.error ? "border-red-500" : ""}
+                  />
+
                       {fieldState.error && (
                         <p className="mt-1 flex items-center text-sm text-red-600">
                           <ExclamationCircleIcon className="mr-1 h-4 w-4" />
@@ -241,32 +256,27 @@ export default function FormRenderer({
                     </>
                   );
   
-                case "checkbox":
-                  return (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={field.key}
-                        checked={!!rhfField.value}
-                        onCheckedChange={(checked) => {
-                          rhfField.onChange(checked);
-                          updateField(field.key, checked);
-                        }}
-                      />
-                      <Label 
-                        htmlFor={field.key} 
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {field.label}
-                      </Label>
-                      {fieldState.error && (
-                        <p className="mt-1 flex items-center text-sm text-red-600">
-                          <ExclamationCircleIcon className="mr-1 h-4 w-4" />
-                          {fieldState.error.message}
-                        </p>
-                      )}
-                    </div>
-                  );
-  
+                  case "checkbox":
+                    return (
+                      <div className="flex items-center space-x-2 -mt-2">
+                        <Checkbox
+                          id={field.key}
+                          checked={!!rhfField.value}
+                          onCheckedChange={(checked) => {
+                            rhfField.onChange(checked);
+                            updateField(field.key, checked);
+                            clearDependentFields(field.key, formData, updateField); 
+                          }}
+                        />
+                        {fieldState.error && (
+                          <p className="mt-1 flex items-center text-sm text-red-600">
+                            <ExclamationCircleIcon className="mr-1 h-4 w-4" />
+                            {fieldState.error.message}
+                          </p>
+                        )}
+                      </div>
+                    );
+                
                 case "select":
                   return (
                     <>
@@ -313,7 +323,7 @@ export default function FormRenderer({
   };
   
   return (
-    <form className="space-y-8 max-w-3xl mx-auto p-4 sm:p-8">
+    <form className="space-y-8 max-w-3xl mx-auto">
       {schema.steps[step].fields.map((field) => renderField(field))}
     </form>
   );

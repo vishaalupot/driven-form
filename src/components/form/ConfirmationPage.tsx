@@ -28,7 +28,7 @@ export default function ConfirmationPage({
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-3xl shadow-xl ring-1 ring-gray-200 space-y-10">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-3xl  ring-gray-200 space-y-10">
       <h2 className="text-4xl font-extrabold text-gray-900 text-center tracking-tight">
         Confirm Your Details
       </h2>
