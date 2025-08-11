@@ -14,7 +14,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ZodError } from "zod";
 import React from "react";
 
-
 interface FormRendererProps {
   schema: FormSchema;
   step: number;
@@ -24,13 +23,11 @@ interface FormRendererProps {
 }
 
 function getDynamicOptions(field: FieldSchema, formData: FormDataState): string[] {
-
   if (!field.optionSource) return field.options || [];
   const { key: sourceKey, map } = field.optionSource;
   const sourceValue = formData[sourceKey];
   if (!sourceValue || !map[sourceValue]) return [];
   return map[sourceValue];
-
 }
 
 const clearDependentFields = (
@@ -41,12 +38,20 @@ const clearDependentFields = (
   const dependencyMap: Record<string, string[]> = {
     propertyType: ["category", "subCategory"],
     category: ["subCategory"],
-    hasParking: ["parkingSpots"]
+    hasParking: ["parkingSpots"],
+    countryCode: ["phone", "phoneNumber"] // Add country code dependency
   };
   
   const fieldsToReset = dependencyMap[changedFieldKey];
   if (fieldsToReset) {
-    fieldsToReset.forEach(field => updateField(field, ""));
+    fieldsToReset.forEach(field => {
+      // Don't clear the phone field value, just trigger re-validation
+      if (changedFieldKey === "countryCode" && (field === "phone" || field === "phoneNumber")) {
+        // Trigger validation but don't clear the field
+        return;
+      }
+      updateField(field, "");
+    });
   }
 };
 
@@ -55,11 +60,13 @@ const DynamicSelectField = React.memo(function DynamicSelectField({
   control,
   updateField,
   formData,
+  triggerValidation,
 }: {
   field: FieldSchema;
   control: any;
   updateField: (key: string, value: unknown) => void;
   formData: FormDataState;
+  triggerValidation?: () => void;
 }) {
   const options = useMemo(() => getDynamicOptions(field, formData), [field, formData]);
   const errorId = `${field.key}-error`;
@@ -76,6 +83,13 @@ const DynamicSelectField = React.memo(function DynamicSelectField({
               rhfField.onChange(value);
               updateField(field.key, value);
               clearDependentFields(field.key, formData, updateField);
+              
+              // If this is a country code field, trigger phone validation
+              if (field.key === "countryCode" || field.key.toLowerCase().includes('country')) {
+                setTimeout(() => {
+                  triggerValidation?.();
+                }, 100);
+              }
             }}
           >
             <SelectTrigger 
@@ -118,7 +132,6 @@ const DynamicSelectField = React.memo(function DynamicSelectField({
   );
 });
 
-
 export default function FormRenderer({
   schema,
   step,
@@ -127,8 +140,8 @@ export default function FormRenderer({
   onValidationChange,
 }: FormRendererProps) {
   const currentStepSchema = useMemo(
-    () => getZodSchemaForStep(schema.steps[step].fields),
-    [schema.steps, step]
+    () => getZodSchemaForStep(schema.steps[step].fields, formData),
+    [schema.steps, step, formData]
   );
   
   const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -143,6 +156,24 @@ export default function FormRenderer({
     mode: "onChange",
     resolver: zodResolver(currentStepSchema),
   });
+
+  // Trigger validation when form data changes (especially for phone number validation)
+  const triggerPhoneValidation = useCallback(async () => {
+    // Find phone fields and trigger their validation
+    const phoneFields = schema.steps[step].fields.flatMap(field => {
+      if (field.type === "group" && field.fields) {
+        return field.fields
+          .filter(f => f.key.toLowerCase().includes('phone') || f.label.toLowerCase().includes('phone'))
+          .map(f => `${field.key}.${f.key}`);
+      }
+      return field.key.toLowerCase().includes('phone') || field.label.toLowerCase().includes('phone') 
+        ? [field.key] : [];
+    });
+    
+    if (phoneFields.length > 0) {
+      await trigger(phoneFields);
+    }
+  }, [trigger, schema.steps, step]);
 
   useEffect(() => {
     const errorCount = Object.keys(errors).length;
@@ -182,7 +213,6 @@ export default function FormRenderer({
     } catch (e) {
       if (e instanceof ZodError) {
         const fieldErrors = e.issues.map((issue) => issue.message).join(", ");
-        // console.log(formData)
         currentStepSchema.parse(formData)
         alert(`Validation errors: ${fieldErrors}`);
       }
@@ -204,7 +234,7 @@ export default function FormRenderer({
     return undefined;
   };
 
-  const renderField = (field: FieldSchema , parentKey?: string) => {
+  const renderField = (field: FieldSchema, parentKey?: string) => {
     const fieldName = parentKey ? `${parentKey}.${field.key}` : field.key;
     const errorId = `${fieldName}-error`;
     
@@ -254,7 +284,6 @@ export default function FormRenderer({
       );
     }
     
-  
     return (
       <div key={field.key} className="space-y-2">
         <Label
@@ -271,6 +300,7 @@ export default function FormRenderer({
             control={control}
             updateField={updateField}
             formData={formData}
+            triggerValidation={triggerPhoneValidation}
           />
         ) : (
           <Controller
@@ -293,7 +323,7 @@ export default function FormRenderer({
                         value={String(rhfField.value || "")}
                         onChange={(e) => {
                           const val = e.target.value;
-                          if (field.label === "Phone Number") {
+                          if (field.label === "Phone Number" || field.key.toLowerCase().includes("phone")) {
                             if (/^\d*$/.test(val)) {
                               rhfField.onChange(val);
                               updateField(fieldName, val);
@@ -361,6 +391,13 @@ export default function FormRenderer({
                           rhfField.onChange(value);
                           updateField(fieldName, value);
                           clearDependentFields(field.key, formData, updateField);
+                          
+                          // If this is a country code field, trigger phone validation
+                          if (field.key === "countryCode" || field.key.toLowerCase().includes('country')) {
+                            setTimeout(() => {
+                              triggerPhoneValidation();
+                            }, 100);
+                          }
                         }}
                       >
                         <SelectTrigger 

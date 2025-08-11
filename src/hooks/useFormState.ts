@@ -1,4 +1,4 @@
-// src/hooks/useFormState.ts
+
 import { useState } from "react";
 
 export function useFormState(initialState: Record<string, unknown> = {}) {

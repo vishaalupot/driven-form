@@ -14,13 +14,13 @@ export function useOptionSource(optionSource: OptionSource) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!optionSource) return; // ✅ Ensures optionSource is a string here
+    if (!optionSource) return;  
 
     async function fetchOptions() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(String(optionSource)); // ✅ TS now knows it's a string
+        const res = await fetch(String(optionSource)); 
         if (!res.ok) throw new Error("Failed to fetch options");
 
         const data: Option[] = await res.json();

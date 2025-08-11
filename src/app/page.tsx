@@ -73,13 +73,14 @@ export default function Page() {
       />
 
       <div className="absolute inset-0 bg-black/65 bg-opacity-90 z-0" />
-      <div className={`absolute left-6 top-[37%] logo transition-opacity duration-1000 hidden md:block ${step === 0 || step === 3? 'opacity-90' : 'opacity-0 pointer-events-none'}`}>
-        <Image
-          src="https://cdn.prod.website-files.com/669c926e032b8db8b91cd9b5/66ada4ebaaa33b9b2da87a5a_Driven%20Forbes-06-p-500.png"
-          alt="Driven Forbes logo"
-          width={550}
-          height={150}
-        />
+      <div className={`absolute left-1/2 top-4 -translate-x-1/2 md:left-6 md:top-[37%] md:translate-x-0 logo transition-opacity duration-1000 block ${step === 0 || step === 3? 'opacity-90' : 'opacity-0 pointer-events-none'}`}>
+      <Image
+        src="https://cdn.prod.website-files.com/669c926e032b8db8b91cd9b5/66ada4ebaaa33b9b2da87a5a_Driven%20Forbes-06-p-500.png"
+        alt="Driven Forbes logo"
+        width={550}
+        height={150}
+        className="w-30 h-auto md:w-[550px]"
+      />
       </div>
 
       <div className={`progress transition-opacity duration-1000 hidden md:block ${step > 0 && step !== 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -98,10 +99,11 @@ export default function Page() {
       <div className="relative z-20 flex justify-center md:justify-end items-center min-h-screen px-4 md:px-8">
       <div className="w-full max-w-lg bg-white shadow-xl rounded-2xl border-neutral-200 h-[85vh] overflow-y-auto">
 
-          <p className="text-neutral-600 text-lg text-center pt-6">
+         
+            <div className="flex flex-col overflow-hidden p-6 h-full">
+               <p className="text-neutral-600 text-lg text-center pt-6">
             Step {step + 1} of {schema.steps.length} — {schema.steps[step].title}
           </p>
-            <div className="flex flex-col overflow-hidden p-6">
             <div className="mt-6 w-full">
               <div className="w-full bg-neutral-200 rounded-full h-3 overflow-hidden">
                 <div
