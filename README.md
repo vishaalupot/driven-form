@@ -6,6 +6,9 @@ A **schema-driven forms** project built with **Next.js**, **Tailwind CSS**, and 
 
 [![Watch the demo video](https://img.youtube.com/vi/jvaKhEbF8DE/maxresdefault.jpg)](https://youtu.be/jvaKhEbF8DE)
 
+## Website Performance Report
+
+![Website performance](./src/app/performance.png)
 
 ## Special Features
 
